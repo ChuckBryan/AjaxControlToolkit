@@ -198,43 +198,19 @@ Sys.Extended.UI.ModalPopupBehavior.prototype = {
         this._foregroundElement.style.zIndex = parseInt($common.getCurrentStyle(this._backgroundElement, 'zIndex', this._backgroundElement.style.zIndex)) + 1;
     },
 
-    _getAllElementsWithAttribute: function(attribute) {
-        var matchingElements = [];
-        var allElements = document.getElementsByTagName('*');
-        for(var i = 0, n = allElements.length; i < n; i++) {
-            if(allElements[i].getAttribute(attribute) !== null) {
-                matchingElements.push(allElements[i]);
-            }
-        }
-        return matchingElements;
+    _findTopModalPopupBackgroundZIndex: function () {
+        var lastPopup = this._getLastPopup();
+        return lastPopup ? lastPopup._backgroundElement.style.zIndex : undefined;
     },
 
-    _findTopModalPopupBackgroundZIndex: function() {
-        var actElements = this._getAllElementsWithAttribute("data-act-control-type");
-        var backgrounds = [];
-
-        for(var i = 0; i < actElements.length; i++) {
-        	if (actElements[i].getAttribute('data-act-control-type') == 'modalPopupBackground')
-                backgrounds.push(actElements[i]);
-        }
-
-        var backgroundsZindex = {};
-
-        var topZIndex = undefined;
-
-        for(var i = 0; i < backgrounds.length; i++) {
-            if(topZIndex == undefined)
-                topZIndex = backgrounds[i].style.zIndex;
-
-            if(backgrounds[i].style.zIndex > topZIndex) {
-                topZIndex = backgrounds[i].style.zIndex;
-            }
-        }
-
-        return topZIndex;
+    _getLastPopup: function () {
+        var popups = Sys.Extended.UI.ModalPopupBehavior.popups;
+        return popups.length ? popups[popups.length - 1] : undefined;
     },
 
     _attachPopup: function() {
+        Sys.Extended.UI.ModalPopupBehavior.popups.push(this);
+
         if(this._dropShadow && !this._dropShadowBehavior)
             this._dropShadowBehavior = $create(Sys.Extended.UI.DropShadowBehavior, {}, null, null, this._popupElement);
 
@@ -267,6 +243,8 @@ Sys.Extended.UI.ModalPopupBehavior.prototype = {
             this._dropShadowBehavior.dispose();
             this._dropShadowBehavior = null;
         }
+
+        Sys.Extended.UI.ModalPopupBehavior.popups.pop();
     },
 
     _onShow: function(e) {
@@ -308,6 +286,11 @@ Sys.Extended.UI.ModalPopupBehavior.prototype = {
     },
 
     _onLayout: function(e) {
+        var lastPopup = this._getLastPopup();
+
+        if(lastPopup !== this)
+            return;
+
         // Handler for scrolling and resizing events that would require a repositioning of the modal dialog
         var positioning = this.get_repositionMode();
 
@@ -1176,3 +1159,5 @@ Sys.Extended.UI.ModalPopupBehavior.invokeViaServer = function(behaviorID, show) 
             behavior.hide();
     }
 };
+
+Sys.Extended.UI.ModalPopupBehavior.popups = [];
